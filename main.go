@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
 	"golang.org/x/sys/windows/registry"
 	"hash"
 	"log"
@@ -16,8 +15,8 @@ import (
 
 const (
 	RegProgID = "1C83.ComHashCalculatePython"
-	RegCLSID = "{C79018B1-C93F-4BAA-8262-3E10D4299584}"
-	RegDesc = "COM Wrapper for calc hash"
+	RegCLSID  = "{C79018B1-C93F-4BAA-8262-3E10D4299584}"
+	RegDesc   = "COM Wrapper for calc hash"
 )
 
 //export CalculateHashFor1C
@@ -70,17 +69,37 @@ func DllUnregisterServer() {
 }
 
 func main() {
-	k, err := registry.OpenKey(registry.CLASSES_ROOT, `AddIn.vk_garant\Clsid`, registry.QUERY_VALUE)
+
+	newKey, _, err := registry.CreateKey(registry.CLASSES_ROOT, RegProgID+`\CLSID`, registry.SET_VALUE)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer k.Close()
 
-	s, _, err := k.GetStringValue("")
+	err = newKey.SetStringValue("", RegCLSID)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Windows system root is %q\n", s)
 
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, `AppID`+RegCLSID, registry.SET_VALUE)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = newKey.SetStringValue("", RegProgID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//k, err := registry.OpenKey(registry.CLASSES_ROOT, `AddIn.vk_garant\Clsid`, registry.QUERY_VALUE)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer k.Close()
+	//
+	//s, _, err := k.GetStringValue("")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Printf("Windows system root is %q\n", s)
 
 }
