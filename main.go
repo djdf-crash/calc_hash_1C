@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"C"
+	"C"
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha1"
@@ -11,17 +11,18 @@ import (
 	"golang.org/x/sys/windows/registry"
 	"hash"
 	"log"
+	_ "runtime/cgo"
 )
 
 const (
-	RegProgID = "1C83.ComHashCalculatePython"
+	RegProgID = "AddIn.ComHashCalculate"
 	RegCLSID  = "{C79018B1-C93F-4BAA-8262-3E10D4299584}"
 	RegDesc   = "COM Wrapper for calc hash"
 )
 
-//export CalculateHashFor1C
-type CalculateHashFor1C struct {
-	CalcHashFunc func() string
+//export GetVersion
+func GetVersion() string {
+	return "v0.0.1"
 }
 
 //export CalcHash
@@ -57,8 +58,92 @@ func DllInstall() {
 
 }
 
+//export DllGetClassObject
+func DllGetClassObject() {
+}
+
 //export DllRegisterServer
 func DllRegisterServer() int {
+
+	return registerKeys()
+}
+
+func registerKeys() int {
+	newKey, _, err := registry.CreateKey(registry.CLASSES_ROOT, `AppID\`+RegCLSID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegDesc)
+
+	keyClassesRootCLSID := `CLSID\` + RegCLSID
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, keyClassesRootCLSID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegDesc)
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, keyClassesRootCLSID+`\InprocServer32`, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	//exPath, err := filepath.Abs(os.Args[1])
+	//if err != nil {
+	//	return 0
+	//}
+	exPath := `D:\GolangProjects\calc_hash_1C\CalcHash1C.dll`
+	setStringValue(newKey, "", exPath)
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, keyClassesRootCLSID+`\ProgID`, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegProgID)
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, RegProgID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegDesc)
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, RegProgID+`\CLSID`, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegCLSID)
+
+	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, `WOW6432Node\AppID\`+RegCLSID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegProgID)
+
+	newKey, _, err = registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\Classes\AppID\`+RegCLSID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegProgID)
+
+	keySoftwareClassesCLSID := `SOFTWARE\Classes\CLSID\` + RegCLSID
+
+	newKey, _, err = registry.CreateKey(registry.LOCAL_MACHINE, keySoftwareClassesCLSID, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", RegDesc)
+
+	newKey, _, err = registry.CreateKey(registry.LOCAL_MACHINE, keySoftwareClassesCLSID+`\InprocServer32`, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+	setStringValue(newKey, "", exPath)
+
+	newKey, _, err = registry.CreateKey(registry.LOCAL_MACHINE, keySoftwareClassesCLSID+`\ProgID`, registry.SET_VALUE)
+	if err != nil {
+		return 0
+	}
+
+	setStringValue(newKey, "", RegProgID)
 
 	return 1
 }
@@ -68,38 +153,18 @@ func DllUnregisterServer() {
 
 }
 
+func setStringValue(k registry.Key, name, value string) {
+
+	err := k.SetStringValue(name, value)
+	defer k.Close()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 
-	newKey, _, err := registry.CreateKey(registry.CLASSES_ROOT, RegProgID+`\CLSID`, registry.SET_VALUE)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = newKey.SetStringValue("", RegCLSID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	newKey, _, err = registry.CreateKey(registry.CLASSES_ROOT, `AppID`+RegCLSID, registry.SET_VALUE)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = newKey.SetStringValue("", RegProgID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//k, err := registry.OpenKey(registry.CLASSES_ROOT, `AddIn.vk_garant\Clsid`, registry.QUERY_VALUE)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//defer k.Close()
-	//
-	//s, _, err := k.GetStringValue("")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//fmt.Printf("Windows system root is %q\n", s)
+	//registerKeys()
 
 }
